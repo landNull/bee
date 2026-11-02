@@ -390,7 +390,7 @@ function download_core_bee_callback($arguments, $options) {
     return;
   }
 
-  $info = download_bee_get_project_info('backdrop', 'backdrop', $core_version['release'], $core_version['branch'], $github_api_token);
+  $info = download_bee_get_project_info('backdrop', 'landNull', $core_version['release'], $core_version['branch'], $github_api_token);
 
   if (!$info) {
     bee_message(bt("Backdrop Core: Download operation is cancelled."), 'info');

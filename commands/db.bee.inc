@@ -235,26 +235,21 @@ function db_import_bee_callback($arguments, $options) {
     $import_command .= "$gunzip_bin -c $filename | ";
   }
 
-  // Check if MariaDB compatibility option is used and add into the command if
-  // so.
-  $mariadb_compatibility = (!empty($options['mariadb-compatibility'])) ? TRUE : FALSE;
-  if ($mariadb_compatibility) {
-    // Define the grep executable.
-    $grep_bin = bee_get_executable_path('grep');
-
-    // Define the grep command.
-    $mariadb_compatibility_command = $grep_bin . ' -vF \'/*!999999\- enable the sandbox mode */ \'';
-
-    if ($gzip) {
-      // If the sql file is zipped then we execute the command on the output of
-      // the unzipped file and pipe to mysql.
-      $import_command .= "$mariadb_compatibility_command | ";
-    }
-    else {
-      // If the sql file is not zipped then we execute the command on the file
-      // and pipe to mysql.
-      $import_command .= "$mariadb_compatibility_command $filename | ";
-    }
+  // MariaDB 11 writes a sandbox-mode comment on line 1. grep -vF treats a
+  // dump with gzipped cache blobs as binary, and it cannot read a 0600 temp
+  // owned by another user. sed deletes only that first line. Default on.
+  // The flag remains as an alias. See backdrop-contrib/bee#384.
+  $sed_bin = bee_get_executable_path('sed');
+  if (!$sed_bin) {
+    bee_message(bt("The 'sed' command cannot be found. Please install it and try again."), 'error');
+    return FALSE;
+  }
+  $sandbox = '1{/^\/\*!999999\\- enable the sandbox mode \*\//d;}';
+  if ($gzip) {
+    $import_command .= "$sed_bin '$sandbox' | ";
+  }
+  else {
+    $import_command .= "$sed_bin '$sandbox' $filename | ";
   }
 
   // Add the mysql command with connection string.
